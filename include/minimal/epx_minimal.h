@@ -50,6 +50,7 @@ extern "C" {
 
 #include "epx_types.h"
 #include "epx_config.h"
+#include "minicore_version.h"
 
 /* ============================================================================
  * OSAL 层 (操作系统抽象)
@@ -81,20 +82,20 @@ extern "C" {
 #endif
 
 /* ============================================================================
- * 版本信息
+ * 版本信息 (与 include/minicore_version.h 及 CMake project(VERSION) 对齐)
  * ============================================================================ */
 
-#define EPX_MINIMAL_VERSION_MAJOR   0
-#define EPX_MINIMAL_VERSION_MINOR   5
-#define EPX_MINIMAL_VERSION_PATCH   0
+#define EPX_MINIMAL_VERSION_MAJOR   MINICORE_VERSION_MAJOR
+#define EPX_MINIMAL_VERSION_MINOR   MINICORE_VERSION_MINOR
+#define EPX_MINIMAL_VERSION_PATCH   MINICORE_VERSION_PATCH
 
 /**
  * @brief 获取轻量核心版本字符串
- * @return 版本字符串, 如 "0.5.0-minimal"
+ * @return 版本字符串, 如 "0.1.0"
  */
 static inline const char* epx_minimal_version(void)
 {
-    return "0.5.0-minimal";
+    return MINICORE_VERSION_STRING;
 }
 
 /**

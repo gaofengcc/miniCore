@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        rpc: [ON, OFF]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DMINICORE_ENABLE_RPC=${{ matrix.rpc }} -DMINICORE_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j4
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
