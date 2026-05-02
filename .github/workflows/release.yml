@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and test
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMINICORE_OSAL_PLATFORM=LINUX \
+            -DMINICORE_ENABLE_RPC=ON \
+            -DMINICORE_BUILD_TESTS=ON \
+            -DMINICORE_BUILD_EXAMPLES=ON \
+            -DMINICORE_EXECUTABLE_OUTPUT_DIR="${{ github.workspace }}/output-ci"
+          cmake --build build -j$(nproc)
+          ctest --test-dir build --output-on-failure
+
+      - name: Create install tarball
+        run: |
+          cmake --install build --prefix "${{ github.workspace }}/staging"
+          install -D -m0644 LICENSE "${{ github.workspace }}/staging/LICENSE"
+          install -D -m0644 README.md "${{ github.workspace }}/staging/README.md"
+          tar -C "${{ github.workspace }}/staging" -czvf \
+            "${{ github.workspace }}/minicore-${{ github.ref_name }}-linux-amd64.tar.gz" .
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: minicore-${{ github.ref_name }}-linux-amd64.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

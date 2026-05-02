@@ -120,7 +120,12 @@ cmake -S . -B build -DMINICORE_BUILD_EXAMPLES=OFF
 cmake -S . -B build -DMINICORE_BUILD_TESTS=OFF
 ```
 
-说明: 桌面可执行示例仅在 `MINICORE_OSAL_PLATFORM=LINUX` 且开启 `MINICORE_BUILD_EXAMPLES` 时生成, 选用 FreeRTOS / RT-Thread 时通常在 BSP 工程中嵌入静态库, 而不使用仓库内示例目标. **CI 当前仅验证 Linux OSAL 构建与 CTest.**
+说明: 桌面可执行示例仅在 `MINICORE_OSAL_PLATFORM=LINUX` 且开启 `MINICORE_BUILD_EXAMPLES` 时生成, 选用 FreeRTOS / RT-Thread 时通常在 BSP 工程中嵌入静态库, 而不使用仓库内示例目标.
+
+#### 持续集成与发布 (CI/CD)
+
+- **[.github/workflows/ci.yml](.github/workflows/ci.yml)**: 在 `push` / `pull_request` 至 `master` 或 `main` 时, 于 Ubuntu 上矩阵构建 `MINICORE_ENABLE_RPC=ON|OFF`, 执行 **CTest**, 校验 **`cmake --install`** 产物, 并上传 **`libminicore.a`** 与示例/测试可执行文件为 Artifact. 可在 Actions 页手动 **Run workflow**.
+- **[.github/workflows/release.yml](.github/workflows/release.yml)**: 推送 **`v*`** 标签 (如 `v0.1.0`) 时构建, 测试通过后打包 `include` / `lib` / CMake 包及 `LICENSE`, `README` 为 **`minicore-<tag>-linux-amd64.tar.gz`**, 并创建 **GitHub Release** (需仓库开启 Actions 写权限).
 
 ### 运行示例
 
@@ -308,7 +313,12 @@ cmake -S . -B build -DMINICORE_BUILD_EXAMPLES=OFF
 cmake -S . -B build -DMINICORE_BUILD_TESTS=OFF
 ```
 
-Desktop examples are only built when `MINICORE_OSAL_PLATFORM=LINUX` and `MINICORE_BUILD_EXAMPLES` is on. For FreeRTOS / RT-Thread, embed the static library from your BSP; bundled examples are not used. **CI currently validates only the Linux OSAL build and CTest.**
+Desktop examples are only built when `MINICORE_OSAL_PLATFORM=LINUX` and `MINICORE_BUILD_EXAMPLES` is on. For FreeRTOS / RT-Thread, embed the static library from your BSP; bundled examples are not used.
+
+#### CI/CD
+
+- **[.github/workflows/ci.yml](.github/workflows/ci.yml)**: On `push` / `pull_request` to `master` or `main`, builds on Ubuntu with `MINICORE_ENABLE_RPC` **ON** and **OFF**, runs **CTest**, verifies **`cmake --install`**, and uploads **`libminicore.a`** plus example/test binaries as workflow artifacts. **Run workflow** is available from the Actions tab.
+- **[.github/workflows/release.yml](.github/workflows/release.yml)**: On **`v*`** tags (e.g. `v0.1.0`), builds and tests, then publishes **`minicore-<tag>-linux-amd64.tar.gz`** (install tree plus `LICENSE` and `README`) to a **GitHub Release** (requires Actions `contents: write`).
 
 ### Run examples
 
