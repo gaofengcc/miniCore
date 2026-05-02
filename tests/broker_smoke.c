@@ -21,10 +21,10 @@ int main(void)
     ret = epx_os_queue_create(&q, sizeof(epx_msg_t), 4);
     assert(ret == EPX_OK && q != NULL);
 
-    ret = epx_sub(topic, q);
+    ret = epx_subscribe_queue(topic, q);
     assert(ret == EPX_OK);
 
-    ret = epx_pub(topic, payload, sizeof(payload));
+    ret = epx_publish_data(topic, payload, sizeof(payload));
     assert(ret == EPX_OK);
 
     epx_msg_t msg = NULL;
@@ -34,7 +34,7 @@ int main(void)
     assert(memcmp(epx_msg_payload(msg), payload, sizeof(payload)) == 0);
     epx_msg_release(msg);
 
-    ret = epx_unsub(topic, q);
+    ret = epx_unsubscribe_queue(topic, q);
     assert(ret == EPX_OK);
 
     epx_os_queue_destroy(&q);

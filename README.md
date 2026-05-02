@@ -153,8 +153,8 @@ epx_msg_t msg = NULL;
 
 ret = epx_broker_init();
 ret = epx_os_queue_create(&queue, sizeof(epx_msg_t), 8);
-ret = epx_sub("sensor/temp", queue);
-ret = epx_pub("sensor/temp", "36.5", 5);
+ret = epx_subscribe_queue("sensor/temp", queue);
+ret = epx_publish_data("sensor/temp", "36.5", 5);
 
 ret = epx_os_queue_recv(queue, &msg, 1000);
 if (ret == EPX_OK && msg != NULL) {
@@ -221,8 +221,8 @@ target_link_libraries(your_app PRIVATE miniCore::minicore)
 - 对外 API 使用 `epx_*` 前缀以保持命名空间稳定
 - `include/epx_config.h` 是当前最小配置入口; 可选钩子如 `EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED`, `EPX_OS_MEM_DEBUG_HOOK_*` 可在集成前 `#define` 覆盖默认空实现
 - `epx_msg_new` 为零拷贝 topic 指针语义, 须保证 topic 字符串在最后一次 `epx_msg_release` 之前有效; 临时缓冲请用 `epx_msg_new_copy` (详见 `include/core/epx_msg.h` 注释)
-- `epx_pub` 同一 topic 的队列订阅者超过 `EPX_MAX_SUBSCRIBERS_PER_TOPIC` 时仅投递前 N 路, 并返回 **`EPX_ERR_BUSY`**; 某路队列满则返回 **`EPX_ERR_QUEUE_FULL`**
-- `epx_broker_deinit` 进行期间会拒绝新的 `epx_pub` / `epx_publish` / `epx_sub` 等, 返回 **`EPX_ERR`**; 集成侧应先停业务线程再 `deinit`
+- `epx_publish_data` 同一 topic 的队列订阅者超过 `EPX_MAX_SUBSCRIBERS_PER_TOPIC` 时仅投递前 N 路, 并返回 **`EPX_ERR_BUSY`**; 某路队列满则返回 **`EPX_ERR_QUEUE_FULL`**
+- `epx_broker_deinit` 进行期间会拒绝新的 `epx_publish_data` / `epx_publish` / `epx_subscribe_queue` 等, 返回 **`EPX_ERR`**; 集成侧应先停业务线程再 `deinit`
 - `epx_broker_is_idle` 为尽力检测, 不能替代显式同步
 - 移植到其他 RTOS 或裸机时, 优先对照 `include/osal/` 接口实现新的 `src/osal/<平台>/` 源文件, 或通过 `MINICORE_OSAL_PLATFORM` 选用已有后端
 
@@ -396,7 +396,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 - Public APIs use the `epx_*` prefix for a stable namespace
 - [include/epx_config.h](include/epx_config.h) is the minimal configuration entry point; optional hooks such as `EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED` and `EPX_OS_MEM_DEBUG_HOOK_*` can be overridden with `#define` before include
 - `epx_msg_new` stores the topic pointer (zero-copy); keep the string valid until the last `epx_msg_release`; use `epx_msg_new_copy` for stack or short-lived buffers (see [include/core/epx_msg.h](include/core/epx_msg.h))
-- `epx_pub` delivers to at most `EPX_MAX_SUBSCRIBERS_PER_TOPIC` queue subscribers per topic; if there are more, extras are skipped and **`EPX_ERR_BUSY`** is returned; a full subscriber queue yields **`EPX_ERR_QUEUE_FULL`**
-- While `epx_broker_deinit` runs, new `epx_pub` / `epx_publish` / `epx_sub` / etc. return **`EPX_ERR`**; stop worker threads before teardown
+- `epx_publish_data` delivers to at most `EPX_MAX_SUBSCRIBERS_PER_TOPIC` queue subscribers per topic; if there are more, extras are skipped and **`EPX_ERR_BUSY`** is returned; a full subscriber queue yields **`EPX_ERR_QUEUE_FULL`**
+- While `epx_broker_deinit` runs, new `epx_publish_data` / `epx_publish` / `epx_subscribe_queue` / etc. return **`EPX_ERR`**; stop worker threads before teardown
 - `epx_broker_is_idle` is a best-effort hint, not a synchronization primitive
 - To port to another RTOS or bare metal, implement `include/osal/` against new sources under `src/osal/<platform>/`, or select an existing backend via `MINICORE_OSAL_PLATFORM`

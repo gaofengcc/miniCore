@@ -61,7 +61,7 @@ epx_err_t epx_broker_init(void)
 
 /**
  * @brief 反初始化 Broker: 释放订阅项, 销毁 topic 树与互斥锁.
- *        调用后, 在再次 epx_broker_init 之前 epx_sub/epx_pub/epx_subscribe/epx_publish 将返回 EPX_ERR.
+ *        调用后, 在再次 epx_broker_init 之前 epx_subscribe_queue/epx_publish_data/epx_subscribe/epx_publish 将返回 EPX_ERR.
  */
 void epx_broker_deinit(void)
 {
@@ -90,7 +90,7 @@ void epx_broker_deinit(void)
     g_broker_teardown = 0;
 }
 
-epx_err_t epx_sub(const char* topic_str, epx_os_queue_t recv_queue)
+epx_err_t epx_subscribe_queue(const char* topic_str, epx_os_queue_t recv_queue)
 {
     if (topic_str == NULL || recv_queue == NULL) {
         return EPX_ERR_PARAM;
@@ -121,7 +121,7 @@ epx_err_t epx_sub(const char* topic_str, epx_os_queue_t recv_queue)
     return EPX_OK;
 }
 
-epx_err_t epx_unsub(const char* topic_str, epx_os_queue_t recv_queue)
+epx_err_t epx_unsubscribe_queue(const char* topic_str, epx_os_queue_t recv_queue)
 {
     if (topic_str == NULL || recv_queue == NULL) {
         return EPX_ERR_PARAM;
@@ -166,7 +166,7 @@ epx_bool_t epx_broker_is_idle(void)
 }
 
 /* 将相同负载投递到 topic 树 (epx_subscribe 回调), 便于网关等接收. */
-static void epx_pub_to_topic_tree(const char* topic_str, const void* data, size_t len)
+static void publish_data_to_topic_tree(const char* topic_str, const void* data, size_t len)
 {
     epx_msg_t m = epx_msg_new(topic_str, len);
     if (m == NULL) {
@@ -181,7 +181,7 @@ static void epx_pub_to_topic_tree(const char* topic_str, const void* data, size_
     (void)epx_publish(m);
 }
 
-epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
+epx_err_t epx_publish_data(const char* topic_str, const void* data, size_t len)
 {
     if (topic_str == NULL || topic_str[0] == '\0') {
         return EPX_ERR_PARAM;
@@ -196,7 +196,7 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
     epx_err_t ret = epx_topic_tbl_lookup(topic_str, &id);
     if (ret != EPX_OK || id >= (uint16_t)EPX_MAX_TOPICS) {
         /* 不在表中的 topic (如 reply): 仅投递 topic 树以便网关等接收. */
-        epx_pub_to_topic_tree(topic_str, data, len);
+        publish_data_to_topic_tree(topic_str, data, len);
         return EPX_OK;
     }
 
@@ -247,7 +247,7 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
         }
     }
     /* 同时投递 topic 树 (如网关订 #), 便于 WS 客户端收到回复. */
-    epx_pub_to_topic_tree(topic_str, data, len);
+    publish_data_to_topic_tree(topic_str, data, len);
     g_in_pub = 0;
     if (truncated) {
         return EPX_ERR_BUSY;

@@ -20,10 +20,10 @@
  *   // 2. 创建队列并订阅 Topic
  *   epx_os_queue_t my_queue;
  *   epx_os_queue_create(&my_queue, sizeof(epx_msg_t), 8);
- *   epx_sub("sensor/+/temp", my_queue);
+ *   epx_subscribe_queue("sensor/1/temp", my_queue);
  *
- *   // 3. 发布消息
- *   epx_pub("sensor/1/temp", data, len);
+ *   // 3. 发布消息 (原始负载; 通配订阅请用 epx_subscribe + epx_publish)
+ *   epx_publish_data("sensor/1/temp", data, len);
  *
  *   // 4. 在接收线程中处理消息
  *   epx_msg_t msg;

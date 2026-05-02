@@ -1,6 +1,6 @@
 /**
  * @file broker_trunc_smoke.c
- * @brief 队列订阅者超过 EPX_MAX_SUBSCRIBERS_PER_TOPIC: epx_pub 返回 EPX_ERR_BUSY.
+ * @brief 队列订阅者超过 EPX_MAX_SUBSCRIBERS_PER_TOPIC: epx_publish_data 返回 EPX_ERR_BUSY.
  */
 
 #include <assert.h>
@@ -21,14 +21,14 @@ int main(void)
     for (uint32_t i = 0; i < EXTRA_SUBS; i++) {
         qs[i] = NULL;
         assert(epx_os_queue_create(&qs[i], sizeof(epx_msg_t), 2) == EPX_OK && qs[i] != NULL);
-        assert(epx_sub(topic, qs[i]) == EPX_OK);
+        assert(epx_subscribe_queue(topic, qs[i]) == EPX_OK);
     }
 
     const char payload[] = "x";
-    assert(epx_pub(topic, payload, sizeof(payload)) == EPX_ERR_BUSY);
+    assert(epx_publish_data(topic, payload, sizeof(payload)) == EPX_ERR_BUSY);
 
     for (uint32_t i = 0; i < EXTRA_SUBS; i++) {
-        assert(epx_unsub(topic, qs[i]) == EPX_OK);
+        assert(epx_unsubscribe_queue(topic, qs[i]) == EPX_OK);
         epx_os_queue_destroy(&qs[i]);
     }
 

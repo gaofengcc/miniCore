@@ -1,7 +1,7 @@
 /**
  * @file epx_topic_tbl.c
  * @brief Topic 注册表: DJB2 哈希 + 动态数组, strcmp 精确匹配.
- *        线程安全: 注册/查找由互斥保护, 并发 epx_sub 同一 topic 得到相同 id.
+ *        线程安全: 注册/查找由互斥保护, 并发 epx_subscribe_queue 同一 topic 得到相同 id.
  */
 
 #include "core/epx_topic_tbl_priv.h"

@@ -60,13 +60,13 @@ static void simulate_sensor_publisher(void)
     /* 发布到 sensor/1/temp */
     snprintf(payload, sizeof(payload), "{\"id\":1,\"temp\":%.1f,\"seq\":%d}",
              25.0 + (counter % 10), counter);
-    epx_pub(TOPIC_SENSOR_1_TEMP, payload, strlen(payload) + 1);
+    epx_publish_data(TOPIC_SENSOR_1_TEMP, payload, strlen(payload) + 1);
     printf("[Publisher] Published to %s: %s\n", TOPIC_SENSOR_1_TEMP, payload);
 
     /* 发布到 sensor/2/temp */
     snprintf(payload, sizeof(payload), "{\"id\":2,\"temp\":%.1f,\"seq\":%d}",
              28.0 + (counter % 5), counter);
-    epx_pub(TOPIC_SENSOR_2_TEMP, payload, strlen(payload) + 1);
+    epx_publish_data(TOPIC_SENSOR_2_TEMP, payload, strlen(payload) + 1);
     printf("[Publisher] Published to %s: %s\n", TOPIC_SENSOR_2_TEMP, payload);
 
     counter++;
@@ -85,7 +85,7 @@ static void simulate_control_commands(void)
     static int idx = 0;
 
     const char* cmd = commands[idx % 3];
-    epx_pub(TOPIC_CONTROL_LED, cmd, strlen(cmd) + 1);
+    epx_publish_data(TOPIC_CONTROL_LED, cmd, strlen(cmd) + 1);
     printf("[Publisher] Published command to %s: %s\n", TOPIC_CONTROL_LED, cmd);
 
     idx++;
@@ -125,15 +125,15 @@ int main(int argc, char* argv[])
     /* 3. 订阅 Topic */
     printf("[Main] Subscribing to topics...\n");
 
-    /* epx_sub 基于队列订阅精确 topic, 这里将两个传感器 topic 绑定到同一接收队列 */
-    ret = epx_sub(TOPIC_SENSOR_1_TEMP, g_sensor_queue);
+    /* epx_subscribe_queue 基于队列订阅精确 topic, 这里将两个传感器 topic 绑定到同一接收队列 */
+    ret = epx_subscribe_queue(TOPIC_SENSOR_1_TEMP, g_sensor_queue);
     if (ret != EPX_OK) {
         printf("[Main] Failed to subscribe to %s: %d\n", TOPIC_SENSOR_1_TEMP, ret);
         return 1;
     }
     printf("[Main] Subscribed to %s\n", TOPIC_SENSOR_1_TEMP);
 
-    ret = epx_sub(TOPIC_SENSOR_2_TEMP, g_sensor_queue);
+    ret = epx_subscribe_queue(TOPIC_SENSOR_2_TEMP, g_sensor_queue);
     if (ret != EPX_OK) {
         printf("[Main] Failed to subscribe to %s: %d\n", TOPIC_SENSOR_2_TEMP, ret);
         return 1;
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
     printf("[Main] Subscribed to %s\n", TOPIC_SENSOR_2_TEMP);
 
     /* 订阅 LED 控制命令 */
-    ret = epx_sub(TOPIC_CONTROL_LED, g_control_queue);
+    ret = epx_subscribe_queue(TOPIC_CONTROL_LED, g_control_queue);
     if (ret != EPX_OK) {
         printf("[Main] Failed to subscribe to %s: %d\n", TOPIC_CONTROL_LED, ret);
         return 1;
@@ -168,9 +168,9 @@ int main(int argc, char* argv[])
     printf("\n[Main] Cleaning up...\n");
 
     /* 5. 清理资源 */
-    epx_unsub(TOPIC_SENSOR_1_TEMP, g_sensor_queue);
-    epx_unsub(TOPIC_SENSOR_2_TEMP, g_sensor_queue);
-    epx_unsub(TOPIC_CONTROL_LED, g_control_queue);
+    epx_unsubscribe_queue(TOPIC_SENSOR_1_TEMP, g_sensor_queue);
+    epx_unsubscribe_queue(TOPIC_SENSOR_2_TEMP, g_sensor_queue);
+    epx_unsubscribe_queue(TOPIC_CONTROL_LED, g_control_queue);
 
     epx_os_queue_destroy(&g_sensor_queue);
     epx_os_queue_destroy(&g_control_queue);

@@ -62,7 +62,7 @@ epx_err_t epx_rpc_call(const char* target_topic,
         return ret;
     }
 
-    ret = epx_sub(reply_topic, recv_queue);
+    ret = epx_subscribe_queue(reply_topic, recv_queue);
     if (ret != EPX_OK) {
         epx_os_queue_destroy(&recv_queue);
         return ret;
@@ -76,7 +76,7 @@ epx_err_t epx_rpc_call(const char* target_topic,
     size_t payload_len = sizeof(epx_rpc_header_t) + req_len;
     uint8_t* payload = (uint8_t*)epx_os_malloc(payload_len);
     if (payload == NULL) {
-        epx_unsub(reply_topic, recv_queue);
+        epx_unsubscribe_queue(reply_topic, recv_queue);
         epx_os_queue_destroy(&recv_queue);
         return EPX_ERR_NOMEM;
     }
@@ -85,10 +85,10 @@ epx_err_t epx_rpc_call(const char* target_topic,
         memcpy(payload + sizeof(epx_rpc_header_t), req_data, req_len);
     }
 
-    ret = epx_pub(target_topic, payload, payload_len);
+    ret = epx_publish_data(target_topic, payload, payload_len);
     epx_os_free(payload);
     if (ret != EPX_OK) {
-        epx_unsub(reply_topic, recv_queue);
+        epx_unsubscribe_queue(reply_topic, recv_queue);
         epx_os_queue_destroy(&recv_queue);
         return ret;
     }
@@ -97,12 +97,12 @@ epx_err_t epx_rpc_call(const char* target_topic,
     ret = epx_os_queue_recv(recv_queue, &msg, timeout_ms);
     /* 安全考虑: 超时必须退订并销毁队列, 禁止永久阻塞. */
     if (ret == EPX_ERR_TIMEOUT) {
-        epx_unsub(reply_topic, recv_queue);
+        epx_unsubscribe_queue(reply_topic, recv_queue);
         epx_os_queue_destroy(&recv_queue);
         return EPX_ERR_TIMEOUT;
     }
     if (ret != EPX_OK || msg == NULL) {
-        epx_unsub(reply_topic, recv_queue);
+        epx_unsubscribe_queue(reply_topic, recv_queue);
         epx_os_queue_destroy(&recv_queue);
         return (ret != EPX_OK) ? ret : EPX_ERR;
     }
@@ -119,7 +119,7 @@ epx_err_t epx_rpc_call(const char* target_topic,
         memset((char*)resp_buf + copy_len, 0, resp_buf_len - copy_len);
     }
     epx_msg_release(msg);
-    epx_unsub(reply_topic, recv_queue);
+    epx_unsubscribe_queue(reply_topic, recv_queue);
     epx_os_queue_destroy(&recv_queue);
     return EPX_OK;
 }
@@ -139,7 +139,7 @@ epx_err_t epx_rpc_reply(epx_msg_t req_msg, const void* resp_data, size_t resp_le
     }
     epx_rpc_header_t* h = (epx_rpc_header_t*)p;
     RPC_LOG_INFO("RPC reply to topic: %s", h->reply_topic);
-    return epx_pub(h->reply_topic, resp_data, resp_len);
+    return epx_publish_data(h->reply_topic, resp_data, resp_len);
 }
 
 typedef struct {
@@ -201,7 +201,7 @@ epx_err_t epx_rpc_register(const char* service_method_topic, epx_rpc_handler_t c
     if (ret != EPX_OK) {
         return ret;
     }
-    ret = epx_sub(slot->topic, slot->queue);
+    ret = epx_subscribe_queue(slot->topic, slot->queue);
     if (ret != EPX_OK) {
         epx_os_queue_destroy(&slot->queue);
         return ret;
@@ -212,7 +212,7 @@ epx_err_t epx_rpc_register(const char* service_method_topic, epx_rpc_handler_t c
 
     ret = epx_os_thread_create(&slot->thread, "rpc_srv", 0, EPX_OS_PRIO_NORMAL, rpc_server_entry, slot);
     if (ret != EPX_OK) {
-        epx_unsub(slot->topic, slot->queue);
+        epx_unsubscribe_queue(slot->topic, slot->queue);
         epx_os_queue_destroy(&slot->queue);
         slot->in_use = 0;
         return ret;
