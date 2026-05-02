@@ -178,16 +178,23 @@ static topic_node_t* node_ensure_child(topic_node_t* parent, const char* segment
         return NULL;
     }
     uint8_t slot = get_child_slot(segment);
+    int linked = 0;
     if (parent->children[slot] == NULL) {
         parent->children[slot] = c;
+        linked = 1;
     } else {
         /* Find empty slot for collision */
         for (int i = EPX_TOPIC_IDX_NORMAL; i < EPX_TOPIC_CHILD_SLOTS; i++) {
             if (parent->children[i] == NULL) {
                 parent->children[i] = c;
+                linked = 1;
                 break;
             }
         }
+    }
+    if (!linked) {
+        node_destroy(c);
+        return NULL;
     }
     parent->child_count++;
     return c;
@@ -206,7 +213,7 @@ static epx_err_t subscribe_at_node(topic_node_t* node, epx_msg_callback_t callba
     return EPX_OK;
 }
 
-static void collect_subscribers(topic_node_t* node, epx_subscriber_list_t* list)
+static epx_err_t collect_subscribers(topic_node_t* node, epx_subscriber_list_t* list)
 {
     for (sub_entry_t* s = node->subscribers; s != NULL; s = s->next) {
         if (list->count >= list->cap) {
@@ -214,9 +221,13 @@ static void collect_subscribers(topic_node_t* node, epx_subscriber_list_t* list)
             epx_msg_callback_t* nc = (epx_msg_callback_t*)epx_os_malloc(sizeof(epx_msg_callback_t) * new_cap);
             void** nd = (void**)epx_os_malloc(sizeof(void*) * new_cap);
             if (nc == NULL || nd == NULL) {
-                if (nc) epx_os_free(nc);
-                if (nd) epx_os_free(nd);
-                return;
+                if (nc) {
+                    epx_os_free(nc);
+                }
+                if (nd) {
+                    epx_os_free(nd);
+                }
+                return EPX_ERR_NOMEM;
             }
             if (list->callbacks != NULL) {
                 memcpy(nc, list->callbacks, list->count * sizeof(epx_msg_callback_t));
@@ -232,43 +243,70 @@ static void collect_subscribers(topic_node_t* node, epx_subscriber_list_t* list)
         list->user_datas[list->count] = s->user_data;
         list->count++;
     }
+    return EPX_OK;
 }
 
-static void match_recursive(topic_node_t* node, const char* const* segments, uint32_t seg_count,
-                            uint32_t seg_idx, epx_subscriber_list_t* list)
+static void subscriber_list_clear_buffers(epx_subscriber_list_t* list)
+{
+    if (list == NULL) {
+        return;
+    }
+    if (list->callbacks != NULL) {
+        epx_os_free(list->callbacks);
+        list->callbacks = NULL;
+    }
+    if (list->user_datas != NULL) {
+        epx_os_free(list->user_datas);
+        list->user_datas = NULL;
+    }
+    list->cap = 0;
+    list->count = 0;
+}
+
+static epx_err_t match_recursive(topic_node_t* node, const char* const* segments, uint32_t seg_count,
+                                 uint32_t seg_idx, epx_subscriber_list_t* list)
 {
     if (node == NULL) {
-        return;
+        return EPX_OK;
     }
     /* Quick path: check # wildcard first */
     for (int i = 0; i < EPX_TOPIC_CHILD_SLOTS; i++) {
         topic_node_t* child = node->children[i];
         if (child != NULL && child->is_multi) {
-            collect_subscribers(child, list);
+            epx_err_t er = collect_subscribers(child, list);
+            if (er != EPX_OK) {
+                return er;
+            }
             break;
         }
     }
     if (seg_idx >= seg_count) {
-        collect_subscribers(node, list);
-        return;
+        return collect_subscribers(node, list);
     }
 
     const char* seg = segments[seg_idx];
-    
+
     /* Check exact match first */
     topic_node_t* exact = node_find_child(node, seg);
     if (exact != NULL) {
-        match_recursive(exact, segments, seg_count, seg_idx + 1, list);
+        epx_err_t er = match_recursive(exact, segments, seg_count, seg_idx + 1, list);
+        if (er != EPX_OK) {
+            return er;
+        }
     }
-    
+
     /* Check + wildcard */
     for (int i = 0; i < EPX_TOPIC_CHILD_SLOTS; i++) {
         topic_node_t* child = node->children[i];
         if (child != NULL && child->is_wildcard && !child->is_multi) {
-            match_recursive(child, segments, seg_count, seg_idx + 1, list);
+            epx_err_t er = match_recursive(child, segments, seg_count, seg_idx + 1, list);
+            if (er != EPX_OK) {
+                return er;
+            }
             break;
         }
     }
+    return EPX_OK;
 }
 
 static uint32_t split_segments(const char* topic, char* buf, size_t buf_size,
@@ -458,9 +496,13 @@ epx_err_t epx_topic_match(const char* topic, epx_subscriber_list_t* out_list)
 
     out_list->count = 0;
     epx_os_mutex_lock(g_topic_mutex);
-    match_recursive(g_root, segs, n, 0, out_list);
+    epx_err_t mret = match_recursive(g_root, segs, n, 0, out_list);
     epx_os_mutex_unlock(g_topic_mutex);
     epx_os_free(buf);
+    if (mret != EPX_OK) {
+        subscriber_list_clear_buffers(out_list);
+        return mret;
+    }
     return EPX_OK;
 }
 

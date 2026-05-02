@@ -21,6 +21,16 @@ endif()
 
 option(MINICORE_BUILD_TESTS "Build CTest smoke tests (requires LINUX OSAL)" ON)
 
+# Examples and tests: place executables under source tree output/ (static lib stays in build dir).
+set(MINICORE_EXECUTABLE_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/output"
+    CACHE PATH "Directory for built example and test executables")
+file(MAKE_DIRECTORY "${MINICORE_EXECUTABLE_OUTPUT_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MINICORE_EXECUTABLE_OUTPUT_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${MINICORE_EXECUTABLE_OUTPUT_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${MINICORE_EXECUTABLE_OUTPUT_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${MINICORE_EXECUTABLE_OUTPUT_DIR}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${MINICORE_EXECUTABLE_OUTPUT_DIR}")
+
 set(MINICORE_SOURCES
     src/core/epx_broker.c
     src/core/epx_mempool.c
@@ -127,6 +137,20 @@ if(MINICORE_BUILD_TESTS AND MINICORE_OSAL_PLATFORM STREQUAL "LINUX")
         target_compile_options(minicore_broker_smoke PRIVATE -Wall -Wextra)
     endif()
     add_test(NAME broker_smoke COMMAND minicore_broker_smoke)
+
+    add_executable(minicore_broker_wildcard tests/broker_wildcard_smoke.c)
+    target_link_libraries(minicore_broker_wildcard PRIVATE miniCore::minicore)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(minicore_broker_wildcard PRIVATE -Wall -Wextra)
+    endif()
+    add_test(NAME broker_wildcard COMMAND minicore_broker_wildcard)
+
+    add_executable(minicore_broker_trunc tests/broker_trunc_smoke.c)
+    target_link_libraries(minicore_broker_trunc PRIVATE miniCore::minicore)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(minicore_broker_trunc PRIVATE -Wall -Wextra)
+    endif()
+    add_test(NAME broker_trunc COMMAND minicore_broker_trunc)
 elseif(MINICORE_BUILD_TESTS)
     message(WARNING "MINICORE_BUILD_TESTS is on but MINICORE_OSAL_PLATFORM is not LINUX; skipping tests.")
 endif()

@@ -143,4 +143,12 @@ uint32_t epx_mempool_free_count(epx_mempool_t pool)
     return pool->free_count;
 }
 
+size_t epx_mempool_block_size(epx_mempool_t pool)
+{
+    if (pool == NULL) {
+        return 0;
+    }
+    return pool->block_size;
+}
+
 #endif /* EPX_OSAL_ENABLE && EPX_OS_MEM_ENABLE */

@@ -18,7 +18,7 @@
 - Linux 下仅依赖 `pthread` 与 `librt`, FreeRTOS / RT-Thread 由 BSP 工程提供内核头文件与链接
 - 支持同步队列式订阅
 - 支持基于 Topic 的请求/响应 RPC
-- Linux 配置下可构建示例与 CTest 冒烟测试
+- Linux 配置下可构建示例与 CTest 测试 (队列订阅, 通配回调, 订阅数上限等)
 
 ### 目录结构
 
@@ -30,6 +30,7 @@ miniCore/
 ├── CONTRIBUTING.md
 ├── README.md
 ├── .github/workflows/
+├── output/                 # 构建生成的可执行文件 (默认, 见下方构建说明)
 ├── include/
 │   ├── epx_config.h
 │   ├── epx_types.h
@@ -46,7 +47,9 @@ miniCore/
 │       ├── freertos/
 │       └── rtthread/
 ├── tests/
-│   └── broker_smoke.c
+│   ├── broker_smoke.c
+│   ├── broker_wildcard_smoke.c
+│   └── broker_trunc_smoke.c
 └── examples/
     ├── minimal_pub_sub.c
     └── minimal_rpc.c
@@ -69,9 +72,16 @@ ctest --test-dir build --output-on-failure
 默认行为:
 
 - `MINICORE_OSAL_PLATFORM` 为 `LINUX`
-- 构建静态库 `minicore`
-- 在 Linux 上默认开启 `MINICORE_BUILD_TESTS` (CTest `broker_smoke`)
+- 构建静态库 `build/libminicore.a` (或生成器对应路径, 位于构建目录 `build/`)
+- 示例与测试可执行文件输出到源码树下的 **`output/`** (缓存变量 `MINICORE_EXECUTABLE_OUTPUT_DIR`, 默认 `${CMAKE_SOURCE_DIR}/output`)
+- 在 Linux 上默认开启 `MINICORE_BUILD_TESTS`, CTest 包含: `broker_smoke`, `broker_wildcard`, `broker_trunc`
 - 构建示例 `minicore_pub_sub` 与 `minicore_rpc` (RPC 开启时)
+
+自定义可执行文件输出目录:
+
+```bash
+cmake -S . -B build -DMINICORE_EXECUTABLE_OUTPUT_DIR=/path/to/dir
+```
 
 #### 选择 OSAL 后端
 
@@ -114,9 +124,11 @@ cmake -S . -B build -DMINICORE_BUILD_TESTS=OFF
 
 ### 运行示例
 
+可执行文件在 **`output/`** 下 (与 `build/` 分离):
+
 ```bash
-./build/minicore_pub_sub
-./build/minicore_rpc
+./output/minicore_pub_sub
+./output/minicore_rpc
 ```
 
 ### 快速使用
@@ -202,7 +214,11 @@ target_link_libraries(your_app PRIVATE miniCore::minicore)
 ### 注意事项
 
 - 对外 API 使用 `epx_*` 前缀以保持命名空间稳定
-- `include/epx_config.h` 是当前最小配置入口
+- `include/epx_config.h` 是当前最小配置入口; 可选钩子如 `EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED`, `EPX_OS_MEM_DEBUG_HOOK_*` 可在集成前 `#define` 覆盖默认空实现
+- `epx_msg_new` 为零拷贝 topic 指针语义, 须保证 topic 字符串在最后一次 `epx_msg_release` 之前有效; 临时缓冲请用 `epx_msg_new_copy` (详见 `include/core/epx_msg.h` 注释)
+- `epx_pub` 同一 topic 的队列订阅者超过 `EPX_MAX_SUBSCRIBERS_PER_TOPIC` 时仅投递前 N 路, 并返回 **`EPX_ERR_BUSY`**; 某路队列满则返回 **`EPX_ERR_QUEUE_FULL`**
+- `epx_broker_deinit` 进行期间会拒绝新的 `epx_pub` / `epx_publish` / `epx_sub` 等, 返回 **`EPX_ERR`**; 集成侧应先停业务线程再 `deinit`
+- `epx_broker_is_idle` 为尽力检测, 不能替代显式同步
 - 移植到其他 RTOS 或裸机时, 优先对照 `include/osal/` 接口实现新的 `src/osal/<平台>/` 源文件, 或通过 `MINICORE_OSAL_PLATFORM` 选用已有后端
 
 ---
@@ -221,11 +237,11 @@ This repository is a **standalone** project, shipped as a C static library for e
 - On Linux, depends only on `pthread` and `librt`; FreeRTOS / RT-Thread builds require BSP-supplied RTOS headers and linking
 - Queue-based synchronous subscriptions
 - Topic-based request/response RPC
-- On Linux, examples and a CTest smoke test can be built
+- On Linux, examples and CTest targets can be built (queue subscription, wildcard callbacks, subscriber cap)
 
 ### Repository layout
 
-Same directory tree as in the Chinese section above (see the `text` block under 中文).
+Same directory tree as in the Chinese section above (see the `text` block under 中文), including `output/` for built executables and the three test sources under `tests/`.
 
 ### Versioning
 
@@ -244,9 +260,16 @@ ctest --test-dir build --output-on-failure
 By default:
 
 - `MINICORE_OSAL_PLATFORM` is `LINUX`
-- Produces static library `minicore`
-- On Linux, `MINICORE_BUILD_TESTS` is on by default (CTest `broker_smoke`)
+- Produces static library `minicore` under the build tree (e.g. `build/libminicore.a`)
+- Example and test executables are written to **`output/`** at the project root (cache variable `MINICORE_EXECUTABLE_OUTPUT_DIR`, default `${CMAKE_SOURCE_DIR}/output`)
+- On Linux, `MINICORE_BUILD_TESTS` is on by default; CTest runs `broker_smoke`, `broker_wildcard`, and `broker_trunc`
 - Builds `minicore_pub_sub` and, when RPC is enabled, `minicore_rpc`
+
+Override the executable output directory:
+
+```bash
+cmake -S . -B build -DMINICORE_EXECUTABLE_OUTPUT_DIR=/path/to/dir
+```
 
 #### Choosing the OSAL backend
 
@@ -289,9 +312,11 @@ Desktop examples are only built when `MINICORE_OSAL_PLATFORM=LINUX` and `MINICOR
 
 ### Run examples
 
+Binaries are under **`output/`** (not `build/`):
+
 ```bash
-./build/minicore_pub_sub
-./build/minicore_rpc
+./output/minicore_pub_sub
+./output/minicore_rpc
 ```
 
 ### Quick start
@@ -359,5 +384,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 ### Notes
 
 - Public APIs use the `epx_*` prefix for a stable namespace
-- [include/epx_config.h](include/epx_config.h) is the minimal configuration entry point
+- [include/epx_config.h](include/epx_config.h) is the minimal configuration entry point; optional hooks such as `EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED` and `EPX_OS_MEM_DEBUG_HOOK_*` can be overridden with `#define` before include
+- `epx_msg_new` stores the topic pointer (zero-copy); keep the string valid until the last `epx_msg_release`; use `epx_msg_new_copy` for stack or short-lived buffers (see [include/core/epx_msg.h](include/core/epx_msg.h))
+- `epx_pub` delivers to at most `EPX_MAX_SUBSCRIBERS_PER_TOPIC` queue subscribers per topic; if there are more, extras are skipped and **`EPX_ERR_BUSY`** is returned; a full subscriber queue yields **`EPX_ERR_QUEUE_FULL`**
+- While `epx_broker_deinit` runs, new `epx_pub` / `epx_publish` / `epx_sub` / etc. return **`EPX_ERR`**; stop worker threads before teardown
+- `epx_broker_is_idle` is a best-effort hint, not a synchronization primitive
 - To port to another RTOS or bare metal, implement `include/osal/` against new sources under `src/osal/<platform>/`, or select an existing backend via `MINICORE_OSAL_PLATFORM`

@@ -31,6 +31,14 @@ struct epx_msg_block {
 
 static epx_os_mutex_t g_msg_mutex = NULL;
 static epx_mempool_t g_msg_pool = NULL;
+/** Effective mempool block size (aligned), or 0 if no pool. */
+static size_t g_msg_pool_block_bytes = 0;
+
+/** Total allocation size for header plus payload (flexible array layout). */
+static size_t msg_bytes_for_payload(size_t payload_len)
+{
+    return sizeof(struct epx_msg_block) + payload_len;
+}
 
 epx_err_t epx_msg_init(void)
 {
@@ -43,6 +51,11 @@ epx_err_t epx_msg_init(void)
     }
     /* Create default memory pool for small messages */
     g_msg_pool = epx_mempool_create(EPX_MSG_POOL_DEFAULT_BLOCK_SIZE, EPX_MSG_POOL_DEFAULT_BLOCK_COUNT);
+    if (g_msg_pool != NULL) {
+        g_msg_pool_block_bytes = epx_mempool_block_size(g_msg_pool);
+    } else {
+        g_msg_pool_block_bytes = 0;
+    }
     return EPX_OK;
 }
 
@@ -57,6 +70,11 @@ epx_err_t epx_msg_init_with_pool(size_t pool_block_size, uint32_t pool_block_cou
     }
     if (pool_block_size > 0 && pool_block_count > 0) {
         g_msg_pool = epx_mempool_create(pool_block_size, pool_block_count);
+        if (g_msg_pool != NULL) {
+            g_msg_pool_block_bytes = epx_mempool_block_size(g_msg_pool);
+        } else {
+            g_msg_pool_block_bytes = 0;
+        }
     }
     return EPX_OK;
 }
@@ -70,8 +88,9 @@ epx_msg_t epx_msg_alloc(size_t size)
         return NULL;
     }
     struct epx_msg_block* block = NULL;
-    /* Try memory pool first for small messages */
-    if (g_msg_pool != NULL && size <= EPX_MSG_POOL_DEFAULT_BLOCK_SIZE - sizeof(struct epx_msg_block)) {
+    /* Try memory pool first when allocation fits one pool block */
+    if (g_msg_pool != NULL && g_msg_pool_block_bytes > 0 &&
+        msg_bytes_for_payload(size) <= g_msg_pool_block_bytes) {
         block = (struct epx_msg_block*)epx_mempool_alloc(g_msg_pool);
         if (block != NULL) {
             block->from_pool = 1;
@@ -108,8 +127,8 @@ epx_msg_t epx_msg_new(const char* topic, size_t payload_len)
         return NULL;
     }
     struct epx_msg_block* block = NULL;
-    /* Try memory pool first for small messages */
-    if (g_msg_pool != NULL && payload_len <= EPX_MSG_POOL_DEFAULT_BLOCK_SIZE - sizeof(struct epx_msg_block)) {
+    if (g_msg_pool != NULL && g_msg_pool_block_bytes > 0 &&
+        msg_bytes_for_payload(payload_len) <= g_msg_pool_block_bytes) {
         block = (struct epx_msg_block*)epx_mempool_alloc(g_msg_pool);
         if (block != NULL) {
             block->from_pool = 1;
@@ -147,8 +166,8 @@ epx_msg_t epx_msg_new_copy(const char* topic, size_t payload_len)
         return NULL;
     }
     struct epx_msg_block* block = NULL;
-    /* Try memory pool first for small messages */
-    if (g_msg_pool != NULL && payload_len <= EPX_MSG_POOL_DEFAULT_BLOCK_SIZE - sizeof(struct epx_msg_block)) {
+    if (g_msg_pool != NULL && g_msg_pool_block_bytes > 0 &&
+        msg_bytes_for_payload(payload_len) <= g_msg_pool_block_bytes) {
         block = (struct epx_msg_block*)epx_mempool_alloc(g_msg_pool);
         if (block != NULL) {
             block->from_pool = 1;

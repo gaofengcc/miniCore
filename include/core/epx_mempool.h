@@ -54,6 +54,13 @@ void epx_mempool_free(epx_mempool_t pool, void* ptr);
  */
 uint32_t epx_mempool_free_count(epx_mempool_t pool);
 
+/**
+ * @brief Effective block size in bytes (after alignment) for one slot in the pool.
+ * @param pool Pool handle (NULL returns 0).
+ * @return Block size in bytes.
+ */
+size_t epx_mempool_block_size(epx_mempool_t pool);
+
 #endif /* EPX_OSAL_ENABLE && EPX_OS_MEM_ENABLE */
 
 #ifdef __cplusplus

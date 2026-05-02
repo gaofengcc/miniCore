@@ -64,12 +64,15 @@ epx_err_t epx_unsub(const char* topic_str, epx_os_queue_t recv_queue);
 
 /**
  * @brief Publish to topic. Alloc msg, copy data, send pointer to each subscriber, then release publisher ref.
- *        If topic has no subscribers, returns without allocating. Queue full: drop and release for that sub.
+ *        Also delivers to the wildcard topic tree (epx_subscribe) so e.g. gateway can receive. If the topic
+ *        is not in the name table, only the topic-tree path runs. Per-subscriber queue: non-blocking send;
+ *        if full, that subscriber drops and EPX_ERR_QUEUE_FULL is returned unless more severe applies.
  * @param topic_str  Topic string.
  * @param data       Payload (copied into message block).
  * @param len        Payload length in bytes.
- * @return EPX_OK on success, EPX_ERR if topic not found (no subscribers),
- *         EPX_ERR_QUEUE_FULL if at least one subscriber queue was full (message dropped for that sub).
+ * @return EPX_OK on success. EPX_ERR_QUEUE_FULL if at least one recv queue was full (that sub dropped).
+ *         EPX_ERR_BUSY if there are more than EPX_MAX_SUBSCRIBERS_PER_TOPIC subscribers (extras not sent;
+ *         optional EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED). EPX_ERR during teardown or when not initialized.
  */
 epx_err_t epx_pub(const char* topic_str, const void* data, size_t len);
 
@@ -80,7 +83,8 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len);
 epx_bool_t epx_broker_is_ready(void);
 
 /**
- * @brief 查询 Broker 是否处于空闲 (当前无 epx_pub 在执行). 供 PM 模块空闲检测使用.
+ * @brief 查询 Broker 是否处于空闲 (当前无 epx_pub 路径在执行). 尽力检测, 不替代显式同步;
+ *        低功耗等关键场景应在业务层先停发布/订阅任务再依赖该结果.
  * @return 1 空闲, 0 忙.
  */
 epx_bool_t epx_broker_is_idle(void);

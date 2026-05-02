@@ -38,4 +38,9 @@
 #define EPX_OS_MEM_DEBUG_HOOK_FREE(ptr)          ((void)0)
 #endif
 
+/* Optional: epx_pub truncated subscriber list (dropped = subs beyond EPX_MAX_SUBSCRIBERS_PER_TOPIC). */
+#ifndef EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED
+#define EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED(topic_str, dropped_count)  ((void)0)
+#endif
+
 #endif /* EPX_CONFIG_H */

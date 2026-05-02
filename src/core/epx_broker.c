@@ -29,6 +29,7 @@ typedef struct sub_entry {
 static sub_entry_t* g_subs[EPX_MAX_TOPICS];
 static epx_os_mutex_t g_broker_mutex = NULL;
 static epx_bool_t g_inited = 0;
+static volatile int g_broker_teardown = 0;
 static volatile int g_in_pub = 0;
 
 epx_err_t epx_broker_init(void)
@@ -36,6 +37,7 @@ epx_err_t epx_broker_init(void)
     if (g_inited) {
         return EPX_OK;
     }
+    g_broker_teardown = 0;
     epx_err_t ret = epx_msg_init();
     if (ret != EPX_OK) {
         return ret;
@@ -66,6 +68,7 @@ void epx_broker_deinit(void)
     if (!g_inited) {
         return;
     }
+    g_broker_teardown = 1;
     if (g_broker_mutex != NULL) {
         epx_os_mutex_lock(g_broker_mutex);
     }
@@ -84,12 +87,16 @@ void epx_broker_deinit(void)
     }
     epx_topic_deinit();
     g_inited = 0;
+    g_broker_teardown = 0;
 }
 
 epx_err_t epx_sub(const char* topic_str, epx_os_queue_t recv_queue)
 {
     if (topic_str == NULL || recv_queue == NULL) {
         return EPX_ERR_PARAM;
+    }
+    if (g_broker_teardown) {
+        return EPX_ERR;
     }
     if (!g_inited || g_broker_mutex == NULL) {
         return EPX_ERR;
@@ -118,6 +125,9 @@ epx_err_t epx_unsub(const char* topic_str, epx_os_queue_t recv_queue)
 {
     if (topic_str == NULL || recv_queue == NULL) {
         return EPX_ERR_PARAM;
+    }
+    if (g_broker_teardown) {
+        return EPX_ERR;
     }
     if (!g_inited || g_broker_mutex == NULL) {
         return EPX_ERR;
@@ -176,6 +186,9 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
     if (topic_str == NULL || topic_str[0] == '\0') {
         return EPX_ERR_PARAM;
     }
+    if (g_broker_teardown) {
+        return EPX_ERR;
+    }
     if (!g_inited || g_broker_mutex == NULL) {
         return EPX_ERR;
     }
@@ -189,6 +202,15 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
 
     g_in_pub = 1;
     epx_os_mutex_lock(g_broker_mutex);
+    uint32_t total_subs = 0;
+    for (sub_entry_t* p = g_subs[id]; p != NULL; p = p->next) {
+        total_subs++;
+    }
+    epx_bool_t truncated = (total_subs > (uint32_t)EPX_MAX_SUBSCRIBERS_PER_TOPIC);
+    if (truncated) {
+        EPX_BROKER_HOOK_SUBSCRIBER_TRUNCATED(topic_str,
+                                             total_subs - (uint32_t)EPX_MAX_SUBSCRIBERS_PER_TOPIC);
+    }
     epx_os_queue_t queues[EPX_MAX_SUBSCRIBERS_PER_TOPIC];
     uint32_t n = 0;
     for (sub_entry_t* p = g_subs[id]; p != NULL && n < (uint32_t)EPX_MAX_SUBSCRIBERS_PER_TOPIC; p = p->next) {
@@ -215,12 +237,21 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
             }
             epx_msg_release(msg);
             g_in_pub = 0;
-            return any_drop ? EPX_ERR_QUEUE_FULL : EPX_OK;
+            if (any_drop) {
+                return EPX_ERR_QUEUE_FULL;
+            }
+            if (truncated) {
+                return EPX_ERR_BUSY;
+            }
+            return EPX_OK;
         }
     }
     /* Also deliver to topic-tree (e.g. Gateway subscribed to #) so WS clients get replies. */
     epx_pub_to_topic_tree(topic_str, data, len);
     g_in_pub = 0;
+    if (truncated) {
+        return EPX_ERR_BUSY;
+    }
     return EPX_OK;
 }
 
@@ -228,6 +259,9 @@ epx_err_t epx_subscribe(const char* topic_filter, epx_msg_callback_t callback, v
 {
     if (topic_filter == NULL || callback == NULL) {
         return EPX_ERR_PARAM;
+    }
+    if (g_broker_teardown) {
+        return EPX_ERR;
     }
     if (!g_inited) {
         return EPX_ERR;
@@ -239,6 +273,10 @@ epx_err_t epx_publish(epx_msg_t msg)
 {
     if (msg == NULL) {
         return EPX_ERR_PARAM;
+    }
+    if (g_broker_teardown) {
+        epx_msg_release(msg);
+        return EPX_ERR;
     }
     if (!g_inited) {
         epx_msg_release(msg);

@@ -27,8 +27,10 @@ epx_err_t epx_msg_init(void);
 
 /**
  * @brief Initialize message module with memory pool for small messages.
- *        The pool will be used for messages with payload_size <= pool_block_size.
- * @param pool_block_size  Block size for memory pool (e.g., 128, 256).
+ *        One pool block must fit sizeof(epx_msg_block) + payload; see epx_mempool_block_size after create.
+ *        Call before any epx_msg_alloc / epx_msg_new if you need this pool; if epx_msg_init ran first,
+ *        this returns early and the custom pool is not applied (same as historical behavior).
+ * @param pool_block_size  Requested block size for memory pool (e.g., 128, 256); aligned internally.
  * @param pool_block_count Number of blocks in pool.
  * @return EPX_OK on success.
  */
@@ -45,9 +47,11 @@ epx_msg_t epx_msg_alloc(size_t size);
 /**
  * @brief Create message with topic and payload. Zero-copy: topic pointer stored directly.
  *        ref_count = 1. Topic string NOT copied (pointer stored), payload_len bytes reserved.
- *        Caller must ensure topic string outlives the message.
+ *        The topic pointer must remain valid until the last epx_msg_release for this handle (including
+ *        any retain/release done by the broker or subscribers). Do not pass stack or short-lived buffers
+ *        unless you use epx_msg_new_copy or keep data alive until all recipients release the message.
  * @param topic         Topic string (pointer stored, NOT copied, max EPX_TOPIC_STR_MAX_LEN).
- *                      Must not be NULL. Must remain valid until message is released.
+ *                      Must not be NULL.
  * @param payload_len   Payload size in bytes.
  * @return Message handle, or NULL on failure.
  */

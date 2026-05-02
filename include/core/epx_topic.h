@@ -62,7 +62,7 @@ void epx_subscriber_list_destroy(epx_subscriber_list_t* list);
  * @brief Match topic (no wildcards) against tree, fill list with (callback, user_data). Clears list first.
  * @param topic    Publish topic string (e.g. "sensor/kitchen/temp").
  * @param out_list List to fill (must not be NULL, created by epx_subscriber_list_create).
- * @return EPX_OK on success.
+ * @return EPX_OK on success, EPX_ERR_NOMEM if building the match list fails.
  */
 epx_err_t epx_topic_match(const char* topic, epx_subscriber_list_t* out_list);
 
