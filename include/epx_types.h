@@ -1,6 +1,6 @@
 /**
  * @file epx_types.h
- * @brief Base types and error codes for EpxCore.
+ * @brief EpxCore 基础类型与错误码.
  */
 
 #ifndef EPX_TYPES_H
@@ -29,10 +29,10 @@ typedef int32_t epx_err_t;
 #define EPX_ERR_NOT_SUPPORTED   (-7)
 #define EPX_ERR_QUEUE_FULL      (-8)
 
-/** Millisecond timestamp (monotonic). */
+/** 毫秒时间戳 (单调). */
 typedef uint64_t epx_time_t;
 
-/* Wire layout: packed struct for RPC/cross-device payload, avoid alignment mismatch. */
+/* 线布局: 紧凑结构体用于 RPC/跨设备负载, 避免对齐不一致. */
 #if defined(__GNUC__) || defined(__clang__)
 #define EPX_PACKED __attribute__((packed))
 #else

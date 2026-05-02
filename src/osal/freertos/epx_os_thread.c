@@ -1,6 +1,6 @@
 /**
  * @file epx_os_thread.c
- * @brief FreeRTOS tasks: xTaskCreate, vTaskDelay, join via binary semaphore.
+ * @brief FreeRTOS 任务: xTaskCreate, vTaskDelay, 通过二值信号量 join.
  */
 
 #include "osal/epx_os_thread.h"

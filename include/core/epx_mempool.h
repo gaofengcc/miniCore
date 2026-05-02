@@ -1,6 +1,6 @@
 /**
  * @file epx_mempool.h
- * @brief Simple memory pool for fixed-size blocks to reduce malloc/free overhead.
+ * @brief 定长块内存池, 降低 malloc/free 开销.
  */
 
 #ifndef EPX_MEMPOOL_H
@@ -13,51 +13,51 @@ extern "C" {
 #endif
 
 /**
- * @brief Opaque memory pool handle.
+ * @brief 不透明内存池句柄.
  */
 typedef struct epx_mempool* epx_mempool_t;
 
 #if defined(EPX_OSAL_ENABLE) && defined(EPX_OS_MEM_ENABLE)
 
 /**
- * @brief Create a memory pool with specified block size and count.
- * @param block_size  Size of each block in bytes.
- * @param block_count Number of blocks in the pool.
- * @return Pool handle, or NULL on failure.
+ * @brief 创建指定块大小与数量的内存池.
+ * @param block_size  每块字节数.
+ * @param block_count 池中块数量.
+ * @return 池句柄, 失败返回 NULL.
  */
 epx_mempool_t epx_mempool_create(size_t block_size, uint32_t block_count);
 
 /**
- * @brief Destroy a memory pool, free all blocks.
- * @param pool Pool handle (NULL is no-op).
+ * @brief 销毁内存池并释放所有块.
+ * @param pool 池句柄 (NULL 时不做任何操作).
  */
 void epx_mempool_destroy(epx_mempool_t pool);
 
 /**
- * @brief Allocate a block from pool. NULL if pool exhausted.
- * @param pool Pool handle.
- * @return Pointer to block, or NULL if no free blocks.
+ * @brief 从池中分配一块. 池耗尽时返回 NULL.
+ * @param pool 池句柄.
+ * @return 块指针, 无空闲块时返回 NULL.
  */
 void* epx_mempool_alloc(epx_mempool_t pool);
 
 /**
- * @brief Return a block to pool.
- * @param pool Pool handle.
- * @param ptr  Block pointer from epx_mempool_alloc (NULL is no-op).
+ * @brief 将块归还池中.
+ * @param pool 池句柄.
+ * @param ptr  由 epx_mempool_alloc 返回的块指针 (NULL 时不做任何操作).
  */
 void epx_mempool_free(epx_mempool_t pool, void* ptr);
 
 /**
- * @brief Get number of free blocks in pool.
- * @param pool Pool handle.
- * @return Number of available blocks.
+ * @brief 获取池中空闲块数量.
+ * @param pool 池句柄.
+ * @return 可用块数量.
  */
 uint32_t epx_mempool_free_count(epx_mempool_t pool);
 
 /**
- * @brief Effective block size in bytes (after alignment) for one slot in the pool.
- * @param pool Pool handle (NULL returns 0).
- * @return Block size in bytes.
+ * @brief 池中单个槽位的有效块大小 (对齐后), 单位字节.
+ * @param pool 池句柄 (NULL 时返回 0).
+ * @return 块大小, 单位字节.
  */
 size_t epx_mempool_block_size(epx_mempool_t pool);
 

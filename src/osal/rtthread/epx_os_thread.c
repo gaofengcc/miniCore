@@ -1,6 +1,6 @@
 /**
  * @file epx_os_thread.c
- * @brief RT-Thread threads: rt_thread_create, rt_thread_mdelay, join via semaphore.
+ * @brief RT-Thread 线程: rt_thread_create, rt_thread_mdelay, 通过信号量 join.
  */
 
 #include "osal/epx_os_thread.h"

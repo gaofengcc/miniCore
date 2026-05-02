@@ -1,6 +1,6 @@
 /**
  * @file epx_rpc.h
- * @brief 基于 Pub/Sub 的 RPC 封装: 请求-响应, 带超时, 防止 Client 永久阻塞.
+ * @brief 基于 Pub/Sub 的 RPC 封装: 请求-响应, 带超时, 防止客户端永久阻塞.
  */
 
 #ifndef EPX_RPC_H
@@ -18,7 +18,7 @@ extern "C" {
 
 #define EPX_RPC_MAX_SERVICES        16
 
-/** RPC 请求头: 放在请求 payload 前部, 含 request_id 与 reply_topic 字符串前缀 (配合 request_id 可生成唯一 topic). Packed for wire/cross-device layout. */
+/** RPC 请求头: 放在请求 payload 前部, 含 request_id 与 reply_topic 字符串前缀 (配合 request_id 可生成唯一 topic). 紧凑布局, 便于跨设备/线路格式一致. */
 #if defined(_MSC_VER)
 #pragma pack(push, 1)
 #endif
@@ -60,7 +60,11 @@ epx_err_t epx_rpc_call(const char* target_topic,
 epx_err_t epx_rpc_reply(epx_msg_t req_msg, const void* resp_data, size_t resp_len);
 
 /**
- * @brief 注册 RPC 服务: 框架订阅 service_method_topic, 收到请求后调用 callback(user_data, req_msg). 每服务一线程一 queue.
+ * @brief 注册 RPC 服务: 框架订阅 service_method_topic, 收到请求后调用 callback(user_data, req_msg). 每服务一线程一队列.
+ * @param service_method_topic  服务方法 topic 字符串.
+ * @param callback                请求到达时的处理回调.
+ * @param user_data               传入回调的用户数据.
+ * @return 成功返回 EPX_OK.
  */
 epx_err_t epx_rpc_register(const char* service_method_topic, epx_rpc_handler_t callback, void* user_data);
 

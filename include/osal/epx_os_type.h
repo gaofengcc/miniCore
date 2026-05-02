@@ -1,6 +1,6 @@
 /**
  * @file epx_os_type.h
- * @brief OSAL type definitions (Step1: status, time, handle aliases).
+ * @brief OSAL 类型定义 (Step1: 状态码, 时间, 句柄别名).
  */
 
 #ifndef EPX_OS_TYPE_H
@@ -15,7 +15,7 @@ extern "C" {
 
 #if defined(EPX_OSAL_ENABLE)
 
-/** Step1 alias: status code, same as epx_err_t. */
+/** Step1 别名: 状态码, 与 epx_err_t 相同. */
 typedef epx_err_t epx_status_t;
 
 #define EPX_STATUS_OK         EPX_OK
@@ -23,7 +23,7 @@ typedef epx_err_t epx_status_t;
 #define EPX_STATUS_TIMEOUT    EPX_ERR_TIMEOUT
 #define EPX_STATUS_NO_MEM     EPX_ERR_NOMEM
 
-/** epx_time_t is defined in epx_types.h (millisecond monotonic). */
+/** epx_time_t 在 epx_types.h 中定义 (单调毫秒). */
 
 #endif /* EPX_OSAL_ENABLE */
 

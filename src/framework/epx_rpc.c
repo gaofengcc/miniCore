@@ -153,6 +153,11 @@ typedef struct {
 
 static rpc_service_slot_t g_rpc_services[EPX_RPC_MAX_SERVICES];
 
+/**
+ * @brief RPC 服务端线程入口: 从队列取消息, 调用 slot 回调, 再 release 消息.
+ * @param arg  指向 rpc_service_slot_t 的指针.
+ * @return 始终为 NULL (当前实现不退出循环).
+ */
 static void* rpc_server_entry(void* arg)
 {
     rpc_service_slot_t* slot = (rpc_service_slot_t*)arg;

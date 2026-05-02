@@ -1,6 +1,6 @@
 /**
  * @file epx_os_thread.c
- * @brief POSIX implementation: pthread, nanosleep.
+ * @brief POSIX 实现: pthread, nanosleep.
  */
 
 #include "osal/epx_os_thread.h"

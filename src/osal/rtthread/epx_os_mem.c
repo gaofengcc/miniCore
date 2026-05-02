@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mem.c
- * @brief RT-Thread heap: rt_malloc/rt_free with debug hooks.
+ * @brief RT-Thread 堆: rt_malloc/rt_free, 带调试钩子.
  */
 
 #include "osal/epx_os_mem.h"

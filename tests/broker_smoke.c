@@ -1,6 +1,6 @@
 /**
  * @file broker_smoke.c
- * @brief Minimal smoke test: broker init, sub, pub, recv, teardown.
+ * @brief 最小冒烟: broker 初始化, 订阅, 发布, 接收, 析构.
  */
 
 #include <assert.h>

@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mutex.h
- * @brief OSAL recursive mutex. Same thread may lock multiple times.
+ * @brief OSAL 递归互斥锁. 同一线程可多次加锁.
  */
 
 #ifndef EPX_OS_MUTEX_H
@@ -19,29 +19,29 @@ struct epx_os_mutex;
 typedef struct epx_os_mutex* epx_os_mutex_t;
 
 /**
- * @brief Create a recursive mutex.
- * @param mutex  Output mutex handle (must not be NULL).
- * @return EPX_OK on success, EPX_ERR_PARAM if mutex is NULL, EPX_ERR_NOMEM on failure.
+ * @brief 创建递归互斥锁.
+ * @param mutex  输出互斥句柄 (不得为 NULL).
+ * @return 成功返回 EPX_OK, mutex 为 NULL 返回 EPX_ERR_PARAM, 失败返回 EPX_ERR_NOMEM.
  */
 epx_err_t epx_os_mutex_create(epx_os_mutex_t* mutex);
 
 /**
- * @brief Lock mutex (recursive: same thread may lock again).
- * @param mutex  Mutex handle (must not be NULL).
- * @return EPX_OK on success, EPX_ERR_PARAM if mutex is NULL.
+ * @brief 加锁 (递归: 同一线程可再次加锁).
+ * @param mutex  互斥句柄 (不得为 NULL).
+ * @return 成功返回 EPX_OK, mutex 为 NULL 返回 EPX_ERR_PARAM.
  */
 epx_err_t epx_os_mutex_lock(epx_os_mutex_t mutex);
 
 /**
- * @brief Unlock mutex.
- * @param mutex  Mutex handle (must not be NULL).
- * @return EPX_OK on success, EPX_ERR_PARAM if mutex is NULL.
+ * @brief 解锁.
+ * @param mutex  互斥句柄 (不得为 NULL).
+ * @return 成功返回 EPX_OK, mutex 为 NULL 返回 EPX_ERR_PARAM.
  */
 epx_err_t epx_os_mutex_unlock(epx_os_mutex_t mutex);
 
 /**
- * @brief Destroy mutex. No-op if mutex is NULL.
- * @param mutex  Mutex handle.
+ * @brief 销毁互斥锁. mutex 为 NULL 时为空操作.
+ * @param mutex  互斥句柄.
  */
 void epx_os_mutex_destroy(epx_os_mutex_t* mutex);
 

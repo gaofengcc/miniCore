@@ -1,7 +1,7 @@
 /**
  * @file epx_topic_tbl.c
- * @brief Topic registry: DJB2 hash + dynamic array, string compare for exact match.
- *        Thread-safe: register/lookup protected by mutex so concurrent epx_sub same topic get same id.
+ * @brief Topic 注册表: DJB2 哈希 + 动态数组, strcmp 精确匹配.
+ *        线程安全: 注册/查找由互斥保护, 并发 epx_sub 同一 topic 得到相同 id.
  */
 
 #include "core/epx_topic_tbl_priv.h"
@@ -25,7 +25,7 @@ static uint32_t g_cap = 0;
 static uint16_t g_next_id = 0;
 static epx_os_mutex_t g_tbl_mutex = NULL;
 
-/* DJB2 hash for quick bucket/compare hint. Full match still by strcmp. */
+/* DJB2 哈希作分桶/比较提示, 最终仍以 strcmp 精确匹配. */
 static unsigned long djb2_hash(const char* str)
 {
     unsigned long hash = 5381;

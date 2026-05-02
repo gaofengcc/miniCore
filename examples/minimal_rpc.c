@@ -40,6 +40,11 @@ typedef struct {
     int status;  /* 0 = OK, other = error */
 } math_resp_t;
 
+/**
+ * @brief 从 RPC 请求消息中解析 math_req_t 指针 (跳过 epx_rpc_header_t).
+ * @param req_msg  请求消息.
+ * @return 有效时返回请求体指针, 否则 NULL.
+ */
 static math_req_t* rpc_get_math_req(epx_msg_t req_msg)
 {
     void* req_payload = epx_msg_payload(req_msg);

@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mem.c
- * @brief FreeRTOS heap: pvPortMalloc/vPortFree with debug hooks.
+ * @brief FreeRTOS 堆: pvPortMalloc/vPortFree, 带调试钩子.
  */
 
 #include "osal/epx_os_mem.h"

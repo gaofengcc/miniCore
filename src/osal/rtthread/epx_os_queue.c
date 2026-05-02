@@ -1,6 +1,6 @@
 /**
  * @file epx_os_queue.c
- * @brief RT-Thread message queue (rt_mq_*).
+ * @brief RT-Thread 消息队列 (rt_mq_*).
  */
 
 #include "osal/epx_os_queue.h"

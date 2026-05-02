@@ -1,7 +1,7 @@
 /**
  * @file epx_topic.c
- * @brief N-ary topic tree with wildcard subscribe/match (+, #).
- *        Optimized with child array instead of linked list for O(1) average lookup.
+ * @brief N 叉 topic 树, 支持通配符订阅/匹配 (+, #).
+ *        子节点用定长数组而非链表, 平均查找接近 O(1).
  */
 
 #include "core/epx_topic.h"
@@ -18,10 +18,10 @@
 #define EPX_TOPIC_WILDCARD_SINGLE  "+"
 #define EPX_TOPIC_WILDCARD_MULTI   "#"
 
-/* Number of child slots per node. Using prime for better hash distribution. */
+/* 每节点子槽数量, 取质数以利哈希分布. */
 #define EPX_TOPIC_CHILD_SLOTS      8
 
-/* Special indices for wildcard children - quick path */
+/* 通配子节点的专用下标, 快速路径 */
 #define EPX_TOPIC_IDX_SINGLE      0
 #define EPX_TOPIC_IDX_MULTI       1
 #define EPX_TOPIC_IDX_NORMAL      2
@@ -34,9 +34,9 @@ typedef struct sub_entry {
 
 typedef struct topic_node {
     char* segment;
-    uint8_t is_wildcard;       /* 1 if segment is + or # */
-    uint8_t is_multi;          /* 1 if segment is # */
-    /* Fixed-size array for children - avoids malloc per child */
+    uint8_t is_wildcard;       /* 1 表示段为 + 或 # */
+    uint8_t is_multi;          /* 1 表示段为 # */
+    /* 子节点定长数组, 避免每子节点单独 malloc */
     struct topic_node* children[EPX_TOPIC_CHILD_SLOTS];
     uint8_t child_count;
     sub_entry_t* subscribers;
@@ -53,7 +53,7 @@ static topic_node_t* g_root = NULL;
 static epx_os_mutex_t g_topic_mutex = NULL;
 static epx_mempool_t g_node_pool = NULL;
 
-/* Simple hash function for segment string */
+/* 段字符串的简单哈希 */
 static uint32_t segment_hash(const char* segment)
 {
     uint32_t hash = 5381;
@@ -64,7 +64,7 @@ static uint32_t segment_hash(const char* segment)
     return hash;
 }
 
-/* Get child slot index for segment */
+/* 计算段对应的子槽下标 */
 static uint8_t get_child_slot(const char* segment)
 {
     if (segment[0] == '+' && segment[1] == '\0') {
@@ -73,7 +73,7 @@ static uint8_t get_child_slot(const char* segment)
     if (segment[0] == '#' && segment[1] == '\0') {
         return EPX_TOPIC_IDX_MULTI;
     }
-    /* Use hash for normal segments */
+    /* 普通段用哈希取槽 */
     return EPX_TOPIC_IDX_NORMAL + (segment_hash(segment) % (EPX_TOPIC_CHILD_SLOTS - EPX_TOPIC_IDX_NORMAL));
 }
 
@@ -116,7 +116,7 @@ static void node_destroy(topic_node_t* node)
     if (node == NULL) {
         return;
     }
-    /* Destroy all children */
+    /* 销毁所有子节点 */
     for (int i = 0; i < EPX_TOPIC_CHILD_SLOTS; i++) {
         if (node->children[i] != NULL) {
             node_destroy(node->children[i]);
@@ -156,7 +156,7 @@ static topic_node_t* node_find_child(topic_node_t* parent, const char* segment)
     if (child != NULL && segment_eq(child->segment, segment)) {
         return child;
     }
-    /* Linear search for collision - rare with good hash */
+    /* 哈希冲突时线性查找, 好哈希下很少发生 */
     for (int i = 0; i < EPX_TOPIC_CHILD_SLOTS; i++) {
         if (i != slot && parent->children[i] != NULL) {
             if (segment_eq(parent->children[i]->segment, segment)) {
@@ -183,7 +183,7 @@ static topic_node_t* node_ensure_child(topic_node_t* parent, const char* segment
         parent->children[slot] = c;
         linked = 1;
     } else {
-        /* Find empty slot for collision */
+        /* 冲突时找空槽 */
         for (int i = EPX_TOPIC_IDX_NORMAL; i < EPX_TOPIC_CHILD_SLOTS; i++) {
             if (parent->children[i] == NULL) {
                 parent->children[i] = c;
@@ -269,7 +269,7 @@ static epx_err_t match_recursive(topic_node_t* node, const char* const* segments
     if (node == NULL) {
         return EPX_OK;
     }
-    /* Quick path: check # wildcard first */
+    /* 快速路径: 先检查 # 通配 */
     for (int i = 0; i < EPX_TOPIC_CHILD_SLOTS; i++) {
         topic_node_t* child = node->children[i];
         if (child != NULL && child->is_multi) {
@@ -286,7 +286,7 @@ static epx_err_t match_recursive(topic_node_t* node, const char* const* segments
 
     const char* seg = segments[seg_idx];
 
-    /* Check exact match first */
+    /* 先检查精确匹配 */
     topic_node_t* exact = node_find_child(node, seg);
     if (exact != NULL) {
         epx_err_t er = match_recursive(exact, segments, seg_count, seg_idx + 1, list);
@@ -295,7 +295,7 @@ static epx_err_t match_recursive(topic_node_t* node, const char* const* segments
         }
     }
 
-    /* Check + wildcard */
+    /* 再检查 + 通配 */
     for (int i = 0; i < EPX_TOPIC_CHILD_SLOTS; i++) {
         topic_node_t* child = node->children[i];
         if (child != NULL && child->is_wildcard && !child->is_multi) {
@@ -349,7 +349,7 @@ epx_err_t epx_topic_init(void)
             return ret;
         }
     }
-    /* Create memory pool for topic nodes */
+    /* 为 topic 节点创建内存池 */
     if (g_node_pool == NULL) {
         g_node_pool = epx_mempool_create(sizeof(topic_node_t), EPX_MAX_TOPICS * 2);
     }
@@ -361,8 +361,8 @@ epx_err_t epx_topic_init(void)
 }
 
 /**
- * @brief Deinitialize topic tree, free all nodes and subscribers. Called by epx_broker_deinit.
- *        After call, epx_topic_subscribe/epx_topic_match will return error until epx_topic_init again.
+ * @brief 反初始化 topic 树, 释放所有节点与订阅者. 由 epx_broker_deinit 调用.
+ *        调用后, 在再次 epx_topic_init 之前 epx_topic_subscribe/epx_topic_match 将返回错误.
  */
 void epx_topic_deinit(void)
 {
@@ -418,7 +418,7 @@ epx_err_t epx_topic_subscribe(const char* topic_filter, epx_msg_callback_t callb
         epx_os_free(buf);
         return EPX_ERR_PARAM;
     }
-    /* Only trailing # allowed; middle # (e.g. "a/#/b") is invalid. */
+    /* 仅允许末尾 #; 中间 # (如 "a/#/b") 非法. */
     for (uint32_t i = 0; i + 1 < n; i++) {
         if (strcmp(segs[i], EPX_TOPIC_WILDCARD_MULTI) == 0) {
             epx_os_free(buf);

@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mutex.c
- * @brief FreeRTOS recursive mutex (xSemaphoreCreateRecursiveMutex).
+ * @brief FreeRTOS 递归互斥量 (xSemaphoreCreateRecursiveMutex).
  */
 
 #include "osal/epx_os_mutex.h"

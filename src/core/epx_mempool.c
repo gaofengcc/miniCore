@@ -1,6 +1,6 @@
 /**
  * @file epx_mempool.c
- * @brief Simple memory pool implementation using free list.
+ * @brief 基于空闲链表的简单内存池实现.
  */
 
 #include "core/epx_mempool.h"
@@ -13,14 +13,14 @@
 #include <string.h>
 
 /**
- * @brief Free list node embedded in each free block.
+ * @brief 嵌入每个空闲块中的空闲链表节点.
  */
 typedef struct mempool_free_node {
     struct mempool_free_node* next;
 } mempool_free_node_t;
 
 /**
- * @brief Memory pool structure.
+ * @brief 内存池结构体.
  */
 struct epx_mempool {
     size_t block_size;
@@ -36,7 +36,7 @@ epx_mempool_t epx_mempool_create(size_t block_size, uint32_t block_count)
     if (block_size < sizeof(mempool_free_node_t)) {
         block_size = sizeof(mempool_free_node_t);
     }
-    /* Align block size to pointer alignment */
+    /* 将块大小按指针宽度对齐 */
     size_t align = sizeof(void*);
     block_size = (block_size + align - 1) & ~(align - 1);
 
@@ -55,7 +55,7 @@ epx_mempool_t epx_mempool_create(size_t block_size, uint32_t block_count)
     epx_os_mutex_t mutex = NULL;
     (void)epx_os_mutex_create(&mutex);
 
-    /* Initialize free list */
+    /* 初始化空闲链表 */
     mempool_free_node_t* free_list = NULL;
     char* p = (char*)memory;
     for (uint32_t i = 0; i < block_count; i++) {
@@ -117,7 +117,7 @@ void epx_mempool_free(epx_mempool_t pool, void* ptr)
     if (pool == NULL || ptr == NULL) {
         return;
     }
-    /* Optionally validate ptr is within pool bounds */
+    /* 可选: 校验 ptr 落在池内存范围内 */
     char* mem = (char*)pool->memory;
     char* p = (char*)ptr;
     if (p < mem || p >= mem + pool->block_size * pool->total_blocks) {

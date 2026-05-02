@@ -1,6 +1,6 @@
 /**
  * @file epx_broker.c
- * @brief Broker: topic registry, subscription table, publish with zero-copy pointer. Queue full: drop.
+ * @brief Broker: topic 注册表, 订阅表, 以零拷贝指针发布. 队列满时丢弃.
  */
 
 #include "core/epx_broker.h"
@@ -60,8 +60,8 @@ epx_err_t epx_broker_init(void)
 }
 
 /**
- * @brief Deinitialize broker: free subscription entries, destroy topic tree and mutexes.
- *        After call, epx_sub/epx_pub/epx_subscribe/epx_publish will return EPX_ERR until epx_broker_init again.
+ * @brief 反初始化 Broker: 释放订阅项, 销毁 topic 树与互斥锁.
+ *        调用后, 在再次 epx_broker_init 之前 epx_sub/epx_pub/epx_subscribe/epx_publish 将返回 EPX_ERR.
  */
 void epx_broker_deinit(void)
 {
@@ -165,7 +165,7 @@ epx_bool_t epx_broker_is_idle(void)
     return (epx_bool_t)(g_in_pub == 0);
 }
 
-/* Deliver same payload to topic-tree (epx_subscribe callbacks), e.g. so Gateway receives. */
+/* 将相同负载投递到 topic 树 (epx_subscribe 回调), 便于网关等接收. */
 static void epx_pub_to_topic_tree(const char* topic_str, const void* data, size_t len)
 {
     epx_msg_t m = epx_msg_new(topic_str, len);
@@ -195,7 +195,7 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
     uint16_t id = 0;
     epx_err_t ret = epx_topic_tbl_lookup(topic_str, &id);
     if (ret != EPX_OK || id >= (uint16_t)EPX_MAX_TOPICS) {
-        /* Topic not in table (e.g. reply topic): deliver only to topic-tree so Gateway gets it. */
+        /* 不在表中的 topic (如 reply): 仅投递 topic 树以便网关等接收. */
         epx_pub_to_topic_tree(topic_str, data, len);
         return EPX_OK;
     }
@@ -246,7 +246,7 @@ epx_err_t epx_pub(const char* topic_str, const void* data, size_t len)
             return EPX_OK;
         }
     }
-    /* Also deliver to topic-tree (e.g. Gateway subscribed to #) so WS clients get replies. */
+    /* 同时投递 topic 树 (如网关订 #), 便于 WS 客户端收到回复. */
     epx_pub_to_topic_tree(topic_str, data, len);
     g_in_pub = 0;
     if (truncated) {

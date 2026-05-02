@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mem.c
- * @brief POSIX implementation: malloc/free with debug hooks.
+ * @brief POSIX 实现: malloc/free, 带调试钩子.
  */
 
 #include "osal/epx_os_mem.h"

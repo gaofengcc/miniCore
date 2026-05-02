@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mutex.c
- * @brief POSIX implementation: recursive mutex via pthread_mutexattr_settype(RECURSIVE).
+ * @brief POSIX 实现: pthread_mutexattr_settype(RECURSIVE) 递归互斥锁.
  */
 
 #include "osal/epx_os_mutex.h"

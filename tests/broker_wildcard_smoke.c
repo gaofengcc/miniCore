@@ -1,6 +1,6 @@
 /**
  * @file broker_wildcard_smoke.c
- * @brief Wildcard subscribe (topic tree) + epx_publish delivers to callback.
+ * @brief 通配符订阅 (topic 树) + epx_publish 投递到回调.
  */
 
 #include <assert.h>

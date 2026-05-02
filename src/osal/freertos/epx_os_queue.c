@@ -1,6 +1,6 @@
 /**
  * @file epx_os_queue.c
- * @brief FreeRTOS queue (xQueueCreate) with timeout semantics.
+ * @brief FreeRTOS 队列 (xQueueCreate), 语义含超时.
  */
 
 #include "osal/epx_os_queue.h"

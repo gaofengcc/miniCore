@@ -1,6 +1,6 @@
 /**
  * @file minicore_version.h
- * @brief Library version (bump together with CMake project(VERSION) and CHANGELOG.md).
+ * @brief 库版本号 (与 CMake project(VERSION) 及 CHANGELOG.md 同步递增).
  */
 
 #ifndef MINICORE_VERSION_H

@@ -1,6 +1,6 @@
 /**
  * @file epx_os_queue.c
- * @brief POSIX implementation: ring buffer + mutex + condvar for timeout support.
+ * @brief POSIX 实现: 环形缓冲 + 互斥 + 条件变量, 支持超时.
  */
 
 #include "osal/epx_os_queue.h"

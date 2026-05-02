@@ -1,7 +1,7 @@
 /**
  * @file epx_msg.c
- * @brief Ref-counted message block. Thread-safe via epx_os_mutex.
- *        Supports memory pool for small messages and zero-copy topic storage.
+ * @brief 引用计数消息块. 通过 epx_os_mutex 保证线程安全.
+ *        支持小消息内存池与零拷贝 topic 存储.
  */
 
 #include "core/epx_msg.h"
@@ -15,26 +15,26 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Default pool settings for small messages */
+/* 小消息默认池参数 */
 #define EPX_MSG_POOL_DEFAULT_BLOCK_SIZE  256
 #define EPX_MSG_POOL_DEFAULT_BLOCK_COUNT  64
 
 struct epx_msg_block {
     volatile int ref_count;
     size_t size;
-    char* topic;           /* Zero-copy: stores pointer directly, no copy */
-    uint8_t topic_copy : 1; /* 1 = topic was copied, 0 = zero-copy pointer */
-    uint8_t from_pool : 1; /* 1 = allocated from memory pool */
+    char* topic;           /* 零拷贝: 直接存指针, 不拷贝 */
+    uint8_t topic_copy : 1; /* 1 = topic 已拷贝, 0 = 零拷贝指针 */
+    uint8_t from_pool : 1; /* 1 = 自内存池分配 */
     void (*destructor)(void*);
     uint8_t data[];
 };
 
 static epx_os_mutex_t g_msg_mutex = NULL;
 static epx_mempool_t g_msg_pool = NULL;
-/** Effective mempool block size (aligned), or 0 if no pool. */
+/** 内存池有效块大小 (对齐后), 无池时为 0. */
 static size_t g_msg_pool_block_bytes = 0;
 
-/** Total allocation size for header plus payload (flexible array layout). */
+/** 头与负载合计分配字节数 (柔性数组成员布局). */
 static size_t msg_bytes_for_payload(size_t payload_len)
 {
     return sizeof(struct epx_msg_block) + payload_len;
@@ -49,7 +49,7 @@ epx_err_t epx_msg_init(void)
     if (ret != EPX_OK) {
         return ret;
     }
-    /* Create default memory pool for small messages */
+    /* 为小消息创建默认内存池 */
     g_msg_pool = epx_mempool_create(EPX_MSG_POOL_DEFAULT_BLOCK_SIZE, EPX_MSG_POOL_DEFAULT_BLOCK_COUNT);
     if (g_msg_pool != NULL) {
         g_msg_pool_block_bytes = epx_mempool_block_size(g_msg_pool);
@@ -88,7 +88,7 @@ epx_msg_t epx_msg_alloc(size_t size)
         return NULL;
     }
     struct epx_msg_block* block = NULL;
-    /* Try memory pool first when allocation fits one pool block */
+    /* 单块可容纳时优先从内存池分配 */
     if (g_msg_pool != NULL && g_msg_pool_block_bytes > 0 &&
         msg_bytes_for_payload(size) <= g_msg_pool_block_bytes) {
         block = (struct epx_msg_block*)epx_mempool_alloc(g_msg_pool);
@@ -141,7 +141,7 @@ epx_msg_t epx_msg_new(const char* topic, size_t payload_len)
         }
         block->from_pool = 0;
     }
-    /* Zero-copy: store topic pointer directly, don't copy */
+    /* 零拷贝: 直接保存 topic 指针, 不拷贝 */
     block->topic = (char*)topic;
     block->topic_copy = 0;
     block->ref_count = 1;
@@ -180,7 +180,7 @@ epx_msg_t epx_msg_new_copy(const char* topic, size_t payload_len)
         }
         block->from_pool = 0;
     }
-    /* Legacy: copy topic string */
+    /* 兼容: 拷贝 topic 字符串 */
     block->topic = (char*)epx_os_malloc(topic_len + 1);
     if (block->topic == NULL) {
         if (block->from_pool) {
@@ -223,11 +223,11 @@ void epx_msg_release(epx_msg_t msg)
         if (block->destructor != NULL) {
             block->destructor(block);
         }
-        /* Only free topic if it was copied (not zero-copy) */
+        /* 仅在已拷贝 topic 时释放 (非零拷贝) */
         if (block->topic != NULL && block->topic_copy) {
             epx_os_free(block->topic);
         }
-        /* Return to pool or free to heap */
+        /* 归还池或释放到堆 */
         if (block->from_pool && g_msg_pool != NULL) {
             epx_mempool_free(g_msg_pool, block);
         } else {

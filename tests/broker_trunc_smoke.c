@@ -1,6 +1,6 @@
 /**
  * @file broker_trunc_smoke.c
- * @brief More than EPX_MAX_SUBSCRIBERS_PER_TOPIC queue subscribers: epx_pub returns EPX_ERR_BUSY.
+ * @brief 队列订阅者超过 EPX_MAX_SUBSCRIBERS_PER_TOPIC: epx_pub 返回 EPX_ERR_BUSY.
  */
 
 #include <assert.h>

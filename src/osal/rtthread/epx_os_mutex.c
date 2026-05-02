@@ -1,6 +1,6 @@
 /**
  * @file epx_os_mutex.c
- * @brief RT-Thread mutex (recursive take/release).
+ * @brief RT-Thread 互斥锁 (递归 take/release).
  */
 
 #include "osal/epx_os_mutex.h"
