@@ -174,6 +174,15 @@ epx_rpc_call("math/add", &req, sizeof(req), &resp, sizeof(resp), 1000);
 
 完整示例见 `examples/minimal_pub_sub.c`, `examples/minimal_rpc.c`.
 
+### Topic 命名与使用
+
+- **语法**: Topic 为以 `/` 分隔的层次路径, 建议从左到右由粗到细 (例如 `域/位置/信号名`).
+- **发布与订阅**: 发布侧使用**具体路径**, 字符串中**不要**包含 `+` 或 `#`. 订阅过滤器可使用单段通配符 `+` 与多级通配符 `#`; `#` **只能出现在末尾一段** (如 `sensor/+/temp`, `sensor/#`), 否则 `epx_topic_subscribe` 返回参数错误. 行为与常见 MQTT Topic 规则一致, 便于日后对接网关或外部位 broker.
+- **长度与深度**: 整串长度须小于 [include/epx_config.h](include/epx_config.h) 中的 `EPX_TOPIC_STR_MAX_LEN`, 段数不超过 `EPX_TOPIC_MAX_DEPTH` (含通配符展开前的路径段).
+- **字符与风格**: 建议使用 **ASCII 小写字母, 数字与 `_`**, 段内避免空格与未转义的控制字符; 多词段可用 `snake_case` (如 `room_a/temp_c`) 或简短单词组合, 团队内保持统一即可.
+- **命名空间 (可选)**: 若启用框架层并需与 RPC, 日志, 云边通道等划分边界, 可参考 [include/framework/epx_topic_names.h](include/framework/epx_topic_names.h) 中的前缀宏 (如 `sys/`, `home/`, `cloud/`), 在应用侧用宏或常量集中定义业务 Topic, 避免散落魔法字符串.
+- **生命周期**: 经 `epx_msg_new` 发出的消息只保存 topic **指针**, 须保证该字符串存活至最后一次 `epx_msg_release`; 临时字符串请用 `epx_msg_new_copy`, 详见上文「注意事项」与 [include/core/epx_msg.h](include/core/epx_msg.h).
+
 ### 集成到其他项目
 
 最简单的方式是把 `miniCore` 作为子目录引入:
@@ -348,6 +357,15 @@ Enable RPC at configure time with `MINICORE_ENABLE_RPC=ON`.
 Same RPC sample code as in the Chinese section.
 
 See `examples/minimal_pub_sub.c` and `examples/minimal_rpc.c`.
+
+### Topic naming and usage
+
+- **Syntax:** Topics are hierarchical paths separated by `/`, ordered from broad to narrow (e.g. `domain/place/signal`).
+- **Publish vs subscribe:** Publish with a **concrete** path; do **not** put `+` or `#` in publish topic strings. Subscription filters may use `+` (one segment) and `#` (remainder); `#` must be the **final** segment (e.g. `sensor/+/temp`, `sensor/#`), otherwise `epx_topic_subscribe` returns a parameter error. This aligns with common MQTT topic rules for future gateway or external broker integration.
+- **Length and depth:** The full string must fit under `EPX_TOPIC_STR_MAX_LEN` and segment count under `EPX_TOPIC_MAX_DEPTH` in [include/epx_config.h](include/epx_config.h).
+- **Characters and style:** Prefer **ASCII lowercase**, digits, and `_`; avoid spaces and raw control characters inside segments; use `snake_case` or short word groups per segment and stay consistent across the project.
+- **Namespaces (optional):** When using the framework layer and splitting RPC, logging, or cloud paths, consider the prefix macros in [include/framework/epx_topic_names.h](include/framework/epx_topic_names.h) (e.g. `sys/`, `home/`, `cloud/`). Centralize application topics in macros or constants instead of scattering literals.
+- **Lifetime:** `epx_msg_new` stores the topic **pointer** only; keep the string alive until the last `epx_msg_release`, or use `epx_msg_new_copy` for ephemeral buffers (see **Notes** above and [include/core/epx_msg.h](include/core/epx_msg.h)).
 
 ### Integrating into another project
 
